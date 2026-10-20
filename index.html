@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>AssetLog</title>
+<meta name="theme-color" content="#3d7565">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="AssetLog">
+<link rel="manifest" href="./manifest.json">
+<link rel="icon" href="./icon-192.png">
+<link rel="apple-touch-icon" href="./apple-touch-icon.png">
+<style>
+:root{--bg:#f3f5f2;--sf:#fff;--tx:#1b2a24;--mu:#66756d;--ln:#dbe2dd;--ac:#3d7565;--ac2:#e7efeb;--onac:#fff;--dg:#b3261e;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#111815;--sf:#1a2420;--tx:#e8efeb;--mu:#8fa299;--ln:#2b3a34;--ac:#86bfab;--ac2:#22332d;--onac:#10201a;--dg:#ff8a80;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#111815;--sf:#1a2420;--tx:#e8efeb;--mu:#8fa299;--ln:#2b3a34;--ac:#86bfab;--ac2:#22332d;--onac:#10201a;--dg:#ff8a80;color-scheme:dark}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--tx);font:15px/1.55 "Hiragino Sans","Noto Sans JP","Yu Gothic",system-ui,sans-serif}
+#app{max-width:640px;margin:0 auto;padding:16px 16px 96px}
+h1{font-size:20px;margin:4px 0 14px;letter-spacing:.02em}h2{font-size:15px;margin:22px 0 8px;color:var(--mu);font-weight:600}
+.card{background:var(--sf);border:1px solid var(--ln);border-radius:14px;padding:14px;margin-bottom:12px}
+.row{display:flex;align-items:center;gap:10px}.sp{justify-content:space-between}.mu{color:var(--mu);font-size:13px}
+.big{font-size:44px;font-weight:700;line-height:1;font-variant-numeric:tabular-nums}
+.bar{height:10px;border-radius:6px;background:var(--ln);overflow:hidden;display:flex}.bar i{display:block;height:100%}
+.dot{width:12px;height:12px;border-radius:50%;flex:none}
+button{font:inherit;border:1px solid var(--ln);background:var(--sf);color:var(--tx);border-radius:10px;padding:9px 14px;cursor:pointer}
+button.p{background:var(--ac);border-color:var(--ac);color:var(--onac);font-weight:600}button.d{color:var(--dg)}
+button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:2px solid var(--ac);outline-offset:1px}
+input,select,textarea{font:inherit;width:100%;padding:9px 10px;border:1px solid var(--ln);border-radius:10px;background:var(--bg);color:var(--tx)}
+label{display:block;font-size:13px;color:var(--mu);margin:10px 0 4px}
+nav{position:fixed;left:0;right:0;bottom:0;background:var(--sf);border-top:1px solid var(--ln);display:flex;padding-bottom:env(safe-area-inset-bottom,0px);z-index:5}
+nav button{flex:1;border:0;border-radius:0;background:none;padding:12px 2px;font-size:12px;color:var(--mu)}nav button.on{color:var(--ac);font-weight:700;box-shadow:inset 0 2px 0 var(--ac)}
+#modal{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;align-items:flex-end;justify-content:center;z-index:9}
+#modal.show{display:flex}.sheet{background:var(--sf);width:100%;max-width:640px;max-height:92%;overflow:auto;border-radius:18px 18px 0 0;padding:16px 16px calc(16px + env(safe-area-inset-bottom,0px))}
+.sw{display:grid;grid-template-columns:repeat(10,1fr);gap:6px}.sw b{aspect-ratio:1;border-radius:50%;cursor:pointer;border:3px solid transparent}.sw b.on{border-color:var(--tx)}
+.clk{font-size:56px;font-weight:700;text-align:center;font-variant-numeric:tabular-nums;margin:10px 0 16px}
+.chart{display:flex;align-items:flex-end;gap:3px;height:140px;margin-top:8px}.chart div{flex:1;display:flex;flex-direction:column-reverse;height:100%;justify-content:flex-start}
+.chart span{display:block;width:100%}.axis{display:flex;gap:3px;font-size:10px;color:var(--mu)}.axis em{flex:1;text-align:center;font-style:normal}
+.scroll{overflow-x:auto}.star{border:0;background:none;font-size:24px;line-height:1;padding:0 6px 0 0;color:#e0a100}.seg{display:flex;gap:6px}.seg button.on{background:var(--ac2);border-color:var(--ac);color:var(--ac)}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<nav id="nav"></nav>
+<div id="modal"><div class="sheet" id="sheet"></div></div>
+<script>
+const OLDC=["#e53935","#d81b60","#8e24aa","#5e35b1","#3949ab","#1e88e5","#039be5","#00acc1","#00897b","#43a047","#7cb342","#c0ca33","#fdd835","#ffb300","#fb8c00","#f4511e","#6d4c41","#757575","#546e7a","#111827"];
+const COLORS=["#d66a6a","#cc6b8e","#a878b8","#8a7bbd","#6f7fbf","#5f94c9","#5aa3bd","#52a6a8","#4f9a87","#6aa56f","#9ab15e","#bcb256","#d4b656","#d9a24f","#d58a55","#c97660","#9a7b6b","#8c8c8c","#7a8f9c","#4a5566"];
+const KEY="assetlog.v1";
+let S=load(),tab="home",ED=null,ST={u:"week",o:0};
+function load(){try{const j=JSON.parse(localStorage.getItem(KEY));if(j&&j.subjects)return j}catch(e){}return{subjects:[],exams:[],logs:[],timer:{run:false,at:0,acc:0,sid:"",mat:"",note:""}}}
+function save(){S.updated=Date.now();try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}push()}
+const $=s=>document.querySelector(s),uid=()=>Math.random().toString(36).slice(2,9);
+const esc=s=>String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const pad=n=>String(n).padStart(2,"0"),ymd=d=>d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate());
+const today=()=>ymd(new Date()),pd=s=>new Date(s+"T00:00:00"),diff=(a,b)=>Math.round((pd(b)-pd(a))/864e5);
+const fmt=m=>{m=Math.round(m);const h=Math.floor(m/60);return h?h+"時間"+(m%60?pad(m%60)+"分":""):m+"分"};
+const clock=s=>{s=Math.floor(s);return pad(Math.floor(s/3600))+":"+pad(Math.floor(s%3600/60))+":"+pad(s%60)};
+const sub=id=>S.subjects.find(s=>s.id===id);
+const col=id=>(sub(id)||{color:"#757575"}).color;
+const elapsed=()=>{const t=S.timer;return t.acc+(t.run?(Date.now()-t.at)/1000:0)};
+function toast(m){alert(m)}
+
+/* ---- exam stats ---- */
+function examStats(e){
+  const end=e.date||today(),days=Math.max(1,diff(e.start,end)+1);let st=0,tg=0,tgStudied=0;
+  const rows=e.targets.map(t=>{
+    const s=S.logs.filter(l=>l.sid===t.sid&&l.date>=e.start&&l.date<=end).reduce((a,l)=>a+l.min,0);
+    const target=t.hours>0?t.hours*60*(t.mode==="daily"?days:1):0;
+    st+=s;tg+=target;if(target)tgStudied+=s;return{sid:t.sid,studied:s,target}});
+  return{rows,studied:st,target:tg,pct:tg?Math.min(100,tgStudied/tg*100):0}}
+function sortExams(){const t=today(),k=e=>!e.date?2:e.date>=t?0:1,f=e=>{const i=S.favs.indexOf(e.id);return i<0?99:i};return[...S.exams].sort((a,b)=>f(a)-f(b)||k(a)-k(b)||((a.date||"")>(b.date||"")?1:-1))}
+function examSec(L){
+  if(!S.exams.length)return"";const t=today(),k=e=>!e.date?2:e.date>=t?0:1;
+  return"<h2>試験別</h2>"+sortExams().map(e=>{
+    const x=examStats(e),d=e.date?diff(t,e.date):null,left=d!==null&&d>=0?d+1:0,ids=e.targets.map(r=>r.sid);
+    const td=sid=>S.logs.filter(l=>l.sid===sid&&l.date===t).reduce((a,l)=>a+l.min,0);
+    const calc=r=>{const rem=Math.max(0,r.target-r.studied);return{rem,need:left&&rem>0?Math.ceil((rem+td(r.sid))/left):0}};
+    const tr=x.rows.filter(r=>r.target),needAll=tr.reduce((a,r)=>a+calc(r).need,0),todayAll=tr.reduce((a,r)=>a+td(r.sid),0);
+    const per=L.filter(l=>ids.includes(l.sid)).reduce((a,l)=>a+l.min,0);
+    const dl=d===null?"日程未設定":d>0?"あと"+d+"日":d===0?"本日":"終了";
+    return`<div class="card"><div class="row sp"><b>${esc(e.name)}</b><b style="color:${d!==null&&d>=0?"var(--ac)":"var(--mu)"}">${dl}</b></div>
+    <div class="row sp mu" style="margin-top:6px"><span>この期間の学習</span><span>${fmt(per)}</span></div>
+    <div class="row sp"><span class="mu">累計</span><span>${fmt(x.studied)}${x.target?" / "+fmt(x.target)+"（"+Math.floor(x.pct)+"%）":""}</span></div>
+    ${x.target?`<div class="bar" style="margin:4px 0 8px"><i style="width:${x.pct}%;background:var(--ac)"></i></div>`:""}
+    ${left&&tr.length?`<div class="row sp" style="background:var(--ac2);border-radius:10px;padding:8px 10px"><span>1日あたりの目標</span><b>${needAll?fmt(needAll):"達成済み"}</b></div><div class="mu" style="text-align:right;margin:2px 2px 6px">今日 ${fmt(todayAll)}（残り日数と累計から自動計算）</div>`:""}
+    ${x.rows.map(r=>{const c=calc(r);return`<div style="margin-top:10px"><div class="row"><i class="dot" style="background:${col(r.sid)}"></i><span style="flex:1">${esc((sub(r.sid)||{}).name)}</span><span class="mu">${fmt(r.studied)}${r.target?" / "+fmt(r.target):""}</span></div>${r.target?`<div class="bar" style="height:6px;margin-top:3px"><i style="width:${Math.min(100,r.studied/r.target*100)}%;background:${col(r.sid)}"></i></div><div class="mu">${c.rem?"残り "+fmt(c.rem):"達成"}${left&&c.need?"・1日あたり "+fmt(c.need):""}</div>`:""}</div>`}).join("")}</div>`}).join("")}
+function examCard(e){
+  const x=examStats(e);let cd;
+  if(!e.date)cd='<div class="mu">試験日は未設定</div>';
+  else{const d=diff(today(),e.date);cd=d>0?`<div class="row" style="align-items:baseline"><span class="big">${d}</span><span>日後</span><span class="mu">${e.date}</span></div>`:d===0?'<div class="big">本日</div>':'<div class="mu">終了 '+e.date+'</div>'}
+  return`<div class="card"><div class="row"><button class="star" aria-label="お気に入り" onclick="toggleFav('${e.id}')">${S.favs.includes(e.id)?"★":"☆"}</button><b>${esc(e.name)}</b></div>${cd}
+  <div class="row sp" style="margin-top:12px"><span class="mu">学習時間</span><span>${fmt(x.studied)}${x.target?" / "+fmt(x.target):""}</span></div>
+  <div class="bar" style="margin-top:4px"><i style="width:${x.target?x.pct:0}%;background:var(--ac)"></i></div>
+  ${x.rows.map(r=>`<div class="row" style="margin-top:8px"><i class="dot" style="background:${col(r.sid)}"></i><span style="flex:1">${esc((sub(r.sid)||{}).name)}</span><span class="mu">${fmt(r.studied)}${r.target?" / "+fmt(r.target):""}</span></div>${r.target?`<div class="bar" style="height:6px"><i style="width:${Math.min(100,r.studied/r.target*100)}%;background:${col(r.sid)}"></i></div>`:""}`).join("")}</div>`}
+
+/* ---- views ---- */
+const sum=a=>a.reduce((x,l)=>x+l.min,0),WD="日月火水木金土".split("");
+let LF={open:false,q:"",sid:"",mat:"",from:"",to:""};
+const lfOn=()=>!!(LF.q||LF.sid||LF.mat||LF.from||LF.to);
+function lfMats(){const ms=LF.sid?matsOf(LF.sid):[...new Set(S.logs.map(l=>l.mat).filter(Boolean))];return'<option value="">すべての教材</option>'+ms.map(m=>`<option value="${esc(m)}" ${m===LF.mat?"selected":""}>${esc(m)}</option>`).join("")}
+function lfPanel(){return`<div class="card"><input placeholder="キーワード（教材・メモ・科目）" value="${esc(LF.q)}" oninput="LF.q=this.value;lfUp()"><div class="row" style="margin-top:8px"><select onchange="LF.sid=this.value;LF.mat='';$('#lfm').innerHTML=lfMats();lfUp()"><option value="">すべての科目</option>${S.subjects.map(s=>`<option value="${s.id}" ${s.id===LF.sid?"selected":""}>${esc(s.name)}</option>`).join("")}</select><select id="lfm" onchange="LF.mat=this.value;lfUp()">${lfMats()}</select></div><div class="row" style="margin-top:8px"><input type="date" value="${LF.from}" onchange="LF.from=this.value;lfUp()"><span>〜</span><input type="date" value="${LF.to}" onchange="LF.to=this.value;lfUp()"></div><div class="row" style="margin-top:8px;justify-content:flex-end"><button onclick="LF={open:true,q:'',sid:'',mat:'',from:'',to:''};render()">条件をクリア</button></div></div>`}
+function lfUp(){const e=$("#loglist");if(e)e.innerHTML=logList()}
+function logList(){
+  const q=LF.q.trim().toLowerCase(),F=S.logs.filter(l=>(!LF.sid||l.sid===LF.sid)&&(!LF.mat||l.mat===LF.mat)&&(!LF.from||l.date>=LF.from)&&(!LF.to||l.date<=LF.to)&&(!q||((l.mat||"")+" "+(l.note||"")+" "+((sub(l.sid)||{}).name||"")).toLowerCase().includes(q)));
+  const g={};F.forEach(l=>(g[l.date]=g[l.date]||[]).push(l));const ds=Object.keys(g).sort().reverse();
+  return(lfOn()?`<div class="mu" style="margin-bottom:6px">${F.length}件・合計 ${fmt(sum(F))}</div>`:"")+(ds.length?ds.map(d=>`<h2>${d}　${fmt(sum(g[d]))}</h2>`+g[d].map(l=>`<div class="card row" onclick="openLog('${l.id}')" style="cursor:pointer;border-left:6px solid ${col(l.sid)}"><div style="flex:1"><b>${esc((sub(l.sid)||{}).name)}</b> <span class="mu">${esc(l.mat)}</span>${l.note?`<div class="mu">${esc(l.note)}</div>`:""}</div><b>${fmt(l.min)}</b></div>`).join("")).join(""):`<div class="card mu">${lfOn()?"条件に合う記録がありません。":"まだ記録がありません。ストップウォッチか「追加」から記録できます。"}</div>`)}
+function rng(){const n=new Date(),keys=[];let label;
+  if(ST.u==="week"){const s=new Date(n);s.setDate(n.getDate()-((n.getDay()+6)%7)+ST.o*7);for(let i=0;i<7;i++){const d=new Date(s);d.setDate(s.getDate()+i);keys.push(ymd(d))}label=keys[0]+" 〜 "+keys[6]}
+  else{const f=new Date(n.getFullYear(),n.getMonth()+ST.o,1),m=new Date(f.getFullYear(),f.getMonth()+1,0).getDate();for(let i=1;i<=m;i++)keys.push(ymd(new Date(f.getFullYear(),f.getMonth(),i)));label=f.getFullYear()+"年"+(f.getMonth()+1)+"月"}
+  return{keys,label}}
+function ctl(label){return`<div class="seg"><button class="${ST.u==="week"?"on":""}" onclick="ST.u='week';ST.o=0;ST.day=null;render()">週</button><button class="${ST.u==="month"?"on":""}" onclick="ST.u='month';ST.o=0;ST.day=null;render()">月</button></div><div class="row sp" style="margin:12px 0"><button onclick="ST.o--;ST.day=null;render()">‹</button><b>${label}</b><button onclick="ST.o++;ST.day=null;render()" ${ST.o>=0?"disabled":""}>›</button></div>`}
+function chart(keys,per,cf){const mx=Math.max(60,...per.map(m=>Object.values(m).reduce((a,b)=>a+b,0))),w=keys.length>7?"min-width:"+keys.length*14+"px":"";
+  return`<div class="scroll"><div class="chart" style="${w}">${per.map((m,i)=>`<div onclick="ST.day=ST.day==='${keys[i]}'?null:'${keys[i]}';render()" style="cursor:pointer;border-radius:4px;${ST.day===keys[i]?"background:var(--ac2)":""}">${Object.keys(m).map(s=>`<span style="height:${m[s]/mx*100}%;background:${cf(s)}"></span>`).join("")}</div>`).join("")}</div><div class="axis" style="${w}">${keys.map(k=>`<em>${ST.u==="week"?WD[pd(k).getDay()]:+k.slice(8)}</em>`).join("")}</div></div>`}
+function dayBox(keys,L,kf,cf,nf){
+  if(!ST.day||!keys.includes(ST.day))return'<div class="mu" style="margin-top:8px">グラフの日付をタップすると、その日の内訳が見られます</div>';
+  const Ld=L.filter(l=>l.date===ST.day),m={};Ld.forEach(l=>m[kf(l)]=(m[kf(l)]||0)+l.min);const t=sum(Ld),ks=Object.keys(m).sort((a,b)=>m[b]-m[a]),d=pd(ST.day);
+  return`<div style="margin-top:12px;border-top:1px solid var(--ln);padding-top:10px"><div class="row sp"><b>${d.getMonth()+1}月${d.getDate()}日（${WD[d.getDay()]}）</b><b>${fmt(t)}</b></div>${t?`<div class="bar" style="margin:8px 0">${ks.map((k,i)=>`<i style="width:${m[k]/t*100}%;background:${cf(k,i)}"></i>`).join("")}</div>`+ks.map((k,i)=>`<div class="row sp" style="margin-top:4px"><span class="row"><i class="dot" style="background:${cf(k,i)}"></i>${esc(nf(k))}</span><span>${fmt(m[k])}</span></div>`).join(""):'<div class="mu">記録なし</div>'}</div>`}
+function subDetail(){
+  const s=sub(ST.sub);if(!s){ST.sub=null;return V.stats()}
+  const{keys,label}=rng(),all=S.logs.filter(l=>l.sid===s.id),L=all.filter(l=>keys.includes(l.date)),nm=l=>l.mat||"（教材なし）";
+  const per=keys.map(k=>({[s.id]:sum(L.filter(l=>l.date===k))})),by={};L.forEach(l=>by[nm(l)]=(by[nm(l)]||0)+l.min);
+  const tot=sum(L),ms=Object.keys(by).sort((a,b)=>by[b]-by[a]),n=new Date(),wk=[],mo=[];
+  for(let i=7;i>=0;i--){const a=new Date(n);a.setDate(n.getDate()-((n.getDay()+6)%7)-i*7);const b=new Date(a);b.setDate(a.getDate()+6);const x=ymd(a),y=ymd(b);wk.push({t:(a.getMonth()+1)+"/"+a.getDate()+"〜",v:sum(all.filter(l=>l.date>=x&&l.date<=y))})}
+  for(let i=5;i>=0;i--){const f=new Date(n.getFullYear(),n.getMonth()-i,1),p=f.getFullYear()+"-"+pad(f.getMonth()+1);mo.push({t:(f.getMonth()+1)+"月",v:sum(all.filter(l=>l.date.slice(0,7)===p))})}
+  const trend=r=>{const mx=Math.max(1,...r.map(x=>x.v));return r.map(x=>`<div class="row" style="margin:5px 0"><span class="mu" style="width:60px">${x.t}</span><div class="bar" style="flex:1"><i style="width:${x.v/mx*100}%;background:${s.color}"></i></div><span style="width:76px;text-align:right">${fmt(x.v)}</span></div>`).join("")};
+  const sh=["ff","cc","99","77","55"];
+  return`<button onclick="ST.sub=null;ST.day=null;render()">‹ 集計に戻る</button><h1 class="row" style="margin-top:14px"><i class="dot" style="background:${s.color}"></i>${esc(s.name)}</h1><div class="mu">累計 ${fmt(sum(all))}</div>${ctl(label)}
+  <div class="card"><div class="mu">この期間の合計</div><b style="font-size:26px">${fmt(tot)}</b>${chart(keys,per,()=>s.color)}${dayBox(keys,L,nm,(k,i)=>s.color+sh[i%5],k=>k)}</div>
+  <h2>教材別（この期間）</h2>${ms.length?ms.map(k=>`<div class="card"><div class="row sp"><span>${esc(k)}</span><b>${fmt(by[k])}</b></div><div class="bar" style="margin-top:6px"><i style="width:${by[k]/tot*100}%;background:${s.color}"></i></div></div>`).join(""):'<div class="card mu">この期間の記録はありません。</div>'}
+  <h2>週ごとの推移</h2><div class="card">${trend(wk)}</div><h2>月ごとの推移</h2><div class="card">${trend(mo)}</div>`}
+/* ---- sync ---- */
+let DBR=null,SYNC="off",pushT=null;
+function push(){if(!DBR)return;clearTimeout(pushT);pushT=setTimeout(()=>{DBR.set({json:JSON.stringify(S),updated:S.updated||0}).then(()=>{SYNC="on"}).catch(()=>{SYNC="err"})},1000)}
+function installCard(){
+  if(matchMedia("(display-mode: standalone)").matches||navigator.standalone)return"";
+  return`<h2>アプリとして使う</h2><div class="card">${window.IP?'<button class="p" onclick="doInstall()">ホーム画面にインストール</button>':'<div class="mu">Chromeのメニュー（︙）→「アプリをインストール」を選ぶとアプリとして使えます。iPhoneはSafariの共有ボタン →「ホーム画面に追加」です。</div>'}</div>`}
+async function doInstall(){const e=window.IP;if(!e)return;e.prompt();try{await e.userChoice}catch(x){}window.IP=null;render()}
+window.addEventListener("beforeinstallprompt",e=>{e.preventDefault();window.IP=e;if(tab==="manage"&&!$("#modal").classList.contains("show"))render()});
+window.addEventListener("appinstalled",()=>{window.IP=null;render()});
+function syncCard(){return`<h2>同期</h2><div class="card">${SYNC==="on"?"☁ ログイン中のアカウントに自動保存しています。同じアカウントでこのページを開けば、スマホとPCで同じデータを使えます。":SYNC==="err"?"同期に失敗しました。データはこの端末には保存されています。":"この端末のブラウザにのみ保存されています。端末間で同期するには、claude.aiにログインした状態で開いてください。"}</div>`}
+async function initSync(){try{
+  if(!window.claude)return;const u=await claude.use("user"),db=await claude.use("db");if(!u||!db)return;
+  const id=await u.id();if(!id)return;DBR=db.doc("data/users/"+id+"/state");
+  DBR.onSnapshot(snap=>{const d=snap.exists?snap.data():null;
+    if(d&&d.json&&(d.updated||0)>(S.updated||0)){try{S=JSON.parse(d.json);S.favs=S.favs||[];try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}if(!$("#modal").classList.contains("show"))render()}catch(e){}}
+    else if(!d||(d.updated||0)<(S.updated||0))push()},()=>{SYNC="err"});
+  SYNC="on";if(tab==="manage"&&!$("#modal").classList.contains("show"))render()}catch(e){}}
+const V={
+home(){
+  const t=today(),fv=S.favs.map(i=>S.exams.find(e=>e.id===i)).filter(Boolean),rest=S.exams.filter(e=>!S.favs.includes(e.id)&&(!e.date||e.date>=t)).sort((a,b)=>(a.date||"9")>(b.date||"9")?1:-1),up=[...fv,...rest].slice(0,3);
+  const td=S.logs.filter(l=>l.date===t).reduce((a,l)=>a+l.min,0);
+  return`<h1>AssetLog</h1><div class="card row sp"><div><div class="mu">今日の学習</div><b style="font-size:22px">${fmt(td)}</b></div><button class="p" onclick="go('timer')">ストップウォッチ</button></div>`+
+  (up.length?up.map(examCard).join(""):`<div class="card"><b>試験を登録しましょう</b><p class="mu">試験名・科目・試験日を登録すると、ここにカウントダウンと進捗が表示されます。</p><button class="p" onclick="openExam()">試験を登録</button></div>`)},
+timer(){
+  const t=S.timer,o=S.subjects.map(s=>`<option value="${s.id}" ${s.id===t.sid?"selected":""}>${esc(s.name)}</option>`).join("");
+  const mats=matsOf(t.sid);
+  const run=t.run,has=t.acc>0||run;
+  return`<h1>ストップウォッチ</h1><div class="card"><div class="clk" id="clk">${clock(elapsed())}</div>
+  <div class="row" style="justify-content:center">${run?'<button onclick="tPause()">一時停止</button>':`<button class="p" onclick="tStart()">${has?"再開":"開始"}</button>`}${has?'<button class="p" onclick="tStop()">終了して記録</button><button class="d" onclick="tReset()">破棄</button>':""}</div>
+  <label>科目</label><div class="row"><select onchange="S.timer.sid=this.value;S.timer.mat='';save();render()"><option value="">選択してください</option>${o}</select><button onclick="openSubject()">＋</button></div>
+  <label>教材</label><div id="mb_t">${matBoxHtml('t',t.sid,t.mat)}</div>
+  <label>メモ</label><textarea rows="2" oninput="S.timer.note=this.value;save()">${esc(t.note)}</textarea></div>`},
+log(){
+  return`<div class="row sp"><h1>学習記録</h1><span class="row"><button onclick="LF.open=!LF.open;render()" aria-label="検索と絞り込み" style="${lfOn()?"background:var(--ac2);border-color:var(--ac);color:var(--ac)":""}"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="display:block"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg></button><button class="p" onclick="openLog()">＋ 追加</button></span></div>${LF.open?lfPanel():""}<div id="loglist">${logList()}</div>`},
+stats(){
+  if(ST.sub)return subDetail();
+  const{keys,label}=rng(),L=S.logs.filter(l=>keys.includes(l.date)),tot=sum(L),by={};
+  L.forEach(l=>by[l.sid]=(by[l.sid]||0)+l.min);
+  const per=keys.map(k=>{const m={};L.filter(l=>l.date===k).forEach(l=>m[l.sid]=(m[l.sid]||0)+l.min);return m});
+  return`<h1>集計</h1>${ctl(label)}<div class="card"><div class="mu">合計</div><b style="font-size:26px">${fmt(tot)}</b>${chart(keys,per,s=>col(s))}${dayBox(keys,L,l=>l.sid,s=>col(s),s=>(sub(s)||{}).name)}</div><h2>科目別（タップで詳細）</h2>`+(Object.keys(by).length?Object.keys(by).sort((a,b)=>by[b]-by[a]).map(s=>`<div class="card" onclick="ST.sub='${s}';ST.day=null;render()" style="cursor:pointer"><div class="row sp"><span class="row"><i class="dot" style="background:${col(s)}"></i>${esc((sub(s)||{}).name)}</span><b>${fmt(by[s])} ›</b></div><div class="bar" style="margin-top:6px"><i style="width:${by[s]/tot*100}%;background:${col(s)}"></i></div></div>`).join(""):'<div class="card mu">この期間の記録はありません。</div>')+examSec(L)},
+manage(){
+  return`<h1>管理</h1><div class="row sp"><h2 style="margin:0">試験</h2><button class="p" onclick="openExam()">＋ 試験</button></div><div style="height:8px"></div>`+
+  (S.exams.length?sortExams().map(e=>{const d=e.date?diff(today(),e.date):null,r=d===null?"":d>0?`あと${d}日`:d===0?"本日":"終了";return`<div class="card row" onclick="openExam('${e.id}')" style="cursor:pointer"><button class="star" aria-label="お気に入り" onclick="event.stopPropagation();toggleFav('${e.id}')">${S.favs.includes(e.id)?"★":"☆"}</button><div style="flex:1"><b>${esc(e.name)}</b><div class="mu">${e.date||"試験日未設定"}・${e.targets.length}科目</div></div><span style="text-align:right"><b style="font-size:18px;color:${d!==null&&d>=0?"var(--ac)":"var(--mu)"}">${r}</b><div class="mu">編集</div></span></div>`}).join(""):'<div class="card mu">試験は未登録です。</div>')+
+  `<div class="row sp"><h2 style="margin:16px 0 8px">科目</h2><button class="p" onclick="openSubject()">＋ 科目</button></div>`+
+  (S.subjects.length?S.subjects.map(s=>`<div class="card row" onclick="openSubject('${s.id}')" style="cursor:pointer"><i class="dot" style="background:${s.color}"></i><div style="flex:1"><b>${esc(s.name)}</b><div class="mu">教材 ${(s.mats||[]).length}件</div></div><span class="mu">編集</span></div>`).join(""):'<div class="card mu">科目は試験がなくても追加できます。</div>')+installCard()+syncCard()}
+};
+const TABS=[["home","ホーム"],["timer","計測"],["log","記録"],["stats","集計"],["manage","管理"]];
+S.favs=S.favs||[];S.subjects.forEach(s=>{const i=OLDC.indexOf(s.color);if(i>=0)s.color=COLORS[i]});try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}
+function toggleFav(id){const i=S.favs.indexOf(id);if(i>=0)S.favs.splice(i,1);else if(S.favs.length>=3)return toast("お気に入りは3件までです。先に他の試験の☆を外してください");else S.favs.push(id);save();render()}
+function go(t){tab=t;render()}
+function render(){$("#app").innerHTML=V[tab]();$("#nav").innerHTML=TABS.map(t=>`<button class="${t[0]===tab?"on":""}" onclick="go('${t[0]}')">${t[1]}</button>`).join("")}
+setInterval(()=>{const c=$("#clk");if(c)c.textContent=clock(elapsed())},500);
+
+/* ---- timer ---- */
+function tStart(){if(!S.timer.sid)return toast("科目を選択してください");S.timer.run=true;S.timer.at=Date.now();save();render()}
+function tPause(){S.timer.acc=elapsed();S.timer.run=false;save();render()}
+function tReset(){if(confirm("計測を破棄しますか？")){S.timer={run:false,at:0,acc:0,sid:S.timer.sid,mat:S.timer.mat,note:S.timer.note};save();render()}}
+function tStop(){tPause();openLog(null,{sid:S.timer.sid,mat:S.timer.mat,note:S.timer.note,min:Math.max(1,Math.round(S.timer.acc/60)),fromTimer:true})}
+
+/* ---- modals ---- */
+function modal(h){$("#sheet").innerHTML=h;$("#modal").classList.add("show")}
+function closeM(){$("#modal").classList.remove("show");ED=null}
+$("#modal").addEventListener("click",e=>{if(e.target.id==="modal")closeM()});
+function openLog(id,pre){
+  if(!S.subjects.length){toast("先に科目を追加してください");return openSubject()}
+  const l=id?S.logs.find(x=>x.id===id):Object.assign({date:today(),sid:S.subjects[0].id,mat:"",min:30,note:""},pre||{});
+  window.LG={id,ft:l.fromTimer};
+  modal(`<b>${id?"記録を編集":"学習を記録"}</b><label>日付</label><input type="date" id="lg_d" value="${l.date}">
+  <label>科目</label><select id="lg_s" onchange="$('#mb_l').innerHTML=matBoxHtml('l',this.value,'')">${S.subjects.map(s=>`<option value="${s.id}" ${s.id===l.sid?"selected":""}>${esc(s.name)}</option>`).join("")}</select>
+  <label>教材</label><div id="mb_l">${matBoxHtml('l',l.sid,l.mat)}</div><label>勉強時間（分）</label><input type="number" min="1" id="lg_t" value="${l.min}">
+  <label>メモ</label><textarea id="lg_n" rows="2">${esc(l.note)}</textarea>
+  <div class="row sp" style="margin-top:16px">${id?`<button class="d" onclick="delLog('${id}')">削除</button>`:"<span></span>"}<span class="row"><button onclick="closeM()">キャンセル</button><button class="p" onclick="saveLog()">保存</button></span></div>`)}
+function saveLog(){
+  const m=Math.round(+$("#lg_t").value);if(!(m>0))return toast("勉強時間を入力してください");
+  const o={date:$("#lg_d").value||today(),sid:$("#lg_s").value,mat:matVal("l"),min:m,note:$("#lg_n").value.trim()};
+  if(LG.id)Object.assign(S.logs.find(x=>x.id===LG.id),o);else S.logs.push(Object.assign({id:uid()},o));
+  if(LG.ft)S.timer={run:false,at:0,acc:0,sid:S.timer.sid,mat:S.timer.mat,note:""};
+  save();closeM();if(LG.ft)tab="log";render()}
+function delLog(id){if(confirm("この記録を削除しますか？")){S.logs=S.logs.filter(l=>l.id!==id);save();closeM();render()}}
+function swatches(c){return COLORS.map(x=>`<b class="${x===c?"on":""}" style="background:${x}" onclick="pick('${x}')"></b>`).join("")}
+function openSubject(id){
+  const s=id?sub(id):{name:"",color:COLORS[S.subjects.length%20]};window.SJ={id,color:s.color,mats:[...(s.mats||[])]};
+  modal(`<b>${id?"科目を編集":"科目を追加"}</b><label>科目名</label><input id="sj_n" value="${esc(s.name)}"><label>色（20色から選択）</label><div class="sw" id="sw">${swatches(s.color)}</div><label>教材</label><div id="sj_m">${matList()}</div><div class="row"><input id="sj_nm" placeholder="教材名を入力" onkeydown="if(event.key==='Enter')addMat()"><button onclick="addMat()">追加</button></div>
+  <div class="row sp" style="margin-top:16px">${id?`<button class="d" onclick="delSub('${id}')">削除</button>`:"<span></span>"}<span class="row"><button onclick="closeM()">キャンセル</button><button class="p" onclick="saveSub()">保存</button></span></div>`)}
+function pick(c){SJ.color=c;$("#sw").innerHTML=swatches(c)}
+function matList(){return SJ.mats.length?SJ.mats.map((m,i)=>`<div class="row sp" style="padding:4px 0"><span>${esc(m)}</span><button class="d" onclick="rmMat(${i})">削除</button></div>`).join(""):'<div class="mu" style="padding:4px 0">教材は未登録です</div>'}
+function addMat(q){const i=$("#sj_nm"),v=i?i.value.trim():"";if(v&&!SJ.mats.includes(v))SJ.mats.push(v);if(i)i.value="";if(!q)$("#sj_m").innerHTML=matList()}
+function rmMat(i){SJ.mats.splice(i,1);$("#sj_m").innerHTML=matList()}
+function matsOf(id){const s=sub(id),last={};S.logs.forEach((l,i)=>{if(l.sid===id&&l.mat){const k=l.date+String(i).padStart(6,"0");if(!last[l.mat]||k>last[l.mat])last[l.mat]=k}});const used=Object.keys(last).sort((a,b)=>last[a]<last[b]?1:-1);return[...used,...((s&&s.mats)||[]).filter(m=>!last[m])]}
+function matBoxHtml(m,sid,val){const ms=matsOf(sid);if(val&&val!=="__new"&&!ms.includes(val))ms.push(val);
+  return`<select id="mbs_${m}" onchange="matPick('${m}',this)"><option value="">（教材なし）</option>${ms.map(x=>`<option value="${esc(x)}" ${x===val?"selected":""}>${esc(x)}</option>`).join("")}<option value="__new">＋ 新しい教材を登録</option></select><div id="mbn_${m}" style="display:none;margin-top:6px"><div class="row"><input id="mbi_${m}" placeholder="新しい教材名" onkeydown="if(event.key==='Enter')matAdd('${m}')"><button class="p" onclick="matAdd('${m}')">登録</button></div></div>`}
+function matSid(m){return m==="t"?S.timer.sid:$("#lg_s").value}
+function matPick(m,sel){const n=$("#mbn_"+m),isNew=sel.value==="__new";n.style.display=isNew?"block":"none";if(isNew)$("#mbi_"+m).focus();else if(m==="t"){S.timer.mat=sel.value;save()}}
+function regMat(sid,name){const s=sub(sid);if(!s||!name)return;s.mats=s.mats||[];if(!s.mats.includes(name)){s.mats.push(name);save()}}
+function matAdd(m){const sid=matSid(m),v=$("#mbi_"+m).value.trim();if(!sid)return toast("先に科目を選択してください");if(!v)return;regMat(sid,v);if(m==="t"){S.timer.mat=v;save()}$("#mb_"+m).innerHTML=matBoxHtml(m,sid,v)}
+function matVal(m){const s=$("#mbs_"+m).value;if(s!=="__new")return s;const v=$("#mbi_"+m).value.trim();regMat(matSid(m),v);return v}
+function mOpts(id){return matsOf(id).map(m=>`<option value="${esc(m)}">`).join("")}
+function saveSub(){const n=$("#sj_n").value.trim();if(!n)return toast("科目名を入力してください");
+  addMat(true);if(SJ.id){const s=sub(SJ.id);s.name=n;s.color=SJ.color;s.mats=SJ.mats}else{const s={id:uid(),name:n,color:SJ.color,mats:SJ.mats};S.subjects.push(s);if(!S.timer.sid)S.timer.sid=s.id}
+  save();closeM();render()}
+function delSub(id){if(confirm("この科目と、その学習記録をすべて削除しますか？")){S.subjects=S.subjects.filter(s=>s.id!==id);S.logs=S.logs.filter(l=>l.sid!==id);S.exams.forEach(e=>e.targets=e.targets.filter(t=>t.sid!==id));if(S.timer.sid===id)S.timer.sid="";save();closeM();render()}}
+function openExam(id){
+  const e=id?S.exams.find(x=>x.id===id):{name:"",date:"",start:today(),targets:[]};
+  ED={id,name:e.name,date:e.date,start:e.start,rows:{}};
+  e.targets.forEach(t=>ED.rows[t.sid]={on:true,mode:t.mode,hours:t.hours||""});examForm()}
+function examForm(){
+  modal(`<b>${ED.id?"試験を編集":"試験を登録"}</b><label>試験名</label><input value="${esc(ED.name)}" oninput="ED.name=this.value"><label>試験日（任意）</label><input type="date" value="${ED.date}" oninput="ED.date=this.value">
+  <label>試験科目と目標勉強時間</label>`+S.subjects.map(s=>{const r=ED.rows[s.id]||{on:false,mode:"total",hours:""};
+    return`<div style="margin-bottom:10px"><label class="row" style="margin:0;color:var(--tx);font-size:15px"><input type="checkbox" style="width:auto" ${r.on?"checked":""} onchange="exRow('${s.id}','on',this.checked);examForm()"><i class="dot" style="background:${s.color}"></i>${esc(s.name)}</label>
+    ${r.on?`<div class="row" style="margin-top:6px"><select style="flex:1.3" onchange="exRow('${s.id}','mode',this.value);examForm()"><option value="total" ${r.mode==="total"?"selected":""}>総勉強時間</option><option value="daily" ${r.mode==="daily"?"selected":""}>1日あたり</option></select><input type="number" min="0" step="0.5" style="flex:1" placeholder="未設定" value="${r.hours}" oninput="exRow('${s.id}','hours',this.value)"><span class="mu">時間</span></div>`:""}</div>`}).join("")+
+  `<div class="row"><input id="ex_ns" placeholder="新しい科目名"><button onclick="exAdd()">追加</button></div>
+  <div class="row sp" style="margin-top:16px">${ED.id?`<button class="d" onclick="delExam('${ED.id}')">削除</button>`:"<span></span>"}<span class="row"><button onclick="closeM()">キャンセル</button><button class="p" onclick="saveExam()">保存</button></span></div>`)}
+function exRow(sid,k,v){const r=ED.rows[sid]||(ED.rows[sid]={on:false,mode:"total",hours:""});r[k]=v}
+function exAdd(){const n=$("#ex_ns").value.trim();if(!n)return;const s={id:uid(),name:n,color:COLORS[S.subjects.length%20]};S.subjects.push(s);if(!S.timer.sid)S.timer.sid=s.id;ED.rows[s.id]={on:true,mode:"total",hours:""};save();examForm()}
+function saveExam(){
+  if(!ED.name.trim())return toast("試験名を入力してください");
+  const targets=Object.keys(ED.rows).filter(k=>ED.rows[k].on&&sub(k)).map(k=>({sid:k,mode:ED.rows[k].mode,hours:+ED.rows[k].hours||0}));
+  if(ED.id)Object.assign(S.exams.find(x=>x.id===ED.id),{name:ED.name.trim(),date:ED.date,targets});
+  else S.exams.push({id:uid(),name:ED.name.trim(),date:ED.date,start:today(),targets});
+  save();closeM();render()}
+function delExam(id){if(confirm("この試験を削除しますか？（学習記録は残ります）")){S.exams=S.exams.filter(e=>e.id!==id);S.favs=S.favs.filter(f=>f!==id);save();closeM();render()}}
+render();initSync();
+try{if('serviceWorker' in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js'))}catch(e){}
+</script>
+</body>
+</html>
